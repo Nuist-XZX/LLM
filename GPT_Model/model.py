@@ -327,7 +327,7 @@ def generate_text_simple(model, idx, max_new_tokens, context_size):
         # Append sampled index to the running sequence
         idx = torch.cat((idx, idx_next), dim=1)  # (batch, n_tokens+1)
 
-    return idx
+    return idx # 返回的是词元ID序列，后面再用分词器的decode函数转换为文本
 
 # 示例：生成文本
 # 首先生成输入文本的词元ID序列
