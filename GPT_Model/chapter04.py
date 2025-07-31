@@ -88,7 +88,7 @@ logits = model(batch)
 
 # 1. 构建层归一化进行归一化激活
 # 层归一化主要思想：调整时间网络层的输出，使其均值为0且方差为1。多应用于多头注意力模块前后和最终输出层之前
-# 封装一个曾归一化的类
+# 封装一个层归一化的类
 class LayerNorm(nn.Module):
     def __init__(self, emb_dim):
         super().__init__()
@@ -257,21 +257,21 @@ output = block(x)
 class GPTModel(nn.Module):
     def __init__(self, cfg):
         super().__init__()
-        self.tok_emb = nn.Embedding(cfg["vocab_size"], cfg["emb_dim"])
-        self.pos_emb = nn.Embedding(cfg["context_length"], cfg["emb_dim"])
+        self.tok_emb = nn.Embedding(cfg["vocab_size"], cfg["emb_dim"])    # 词元嵌入
+        self.pos_emb = nn.Embedding(cfg["context_length"], cfg["emb_dim"]) # 位置嵌入
         self.drop_emb = nn.Dropout(cfg["drop_rate"])
         
         self.trf_blocks = nn.Sequential(*[TransformerBlock(cfg) for _ in range(cfg["n_layers"])])
         
-        self.final_norm = LayerNorm(cfg["emb_dim"])
-        self.out_head = nn.Linear(cfg["emb_dim"], cfg["vocab_size"], bias=False)
+        self.final_norm = LayerNorm(cfg["emb_dim"]) # 最终层归一化
+        self.out_head = nn.Linear(cfg["emb_dim"], cfg["vocab_size"], bias=False) # 线性输出层
 
     def forward(self, in_idx):
         batch_size, seq_len = in_idx.shape
         tok_embeds = self.tok_emb(in_idx)
         pos_embeds = self.pos_emb(torch.arange(seq_len, device=in_idx.device))
-        x = tok_embeds + pos_embeds  # Shape [batch_size, num_tokens, emb_size]
-        x = self.drop_emb(x)
+        x = tok_embeds + pos_embeds  # Shape [batch_size, num_tokens, emb_size] 词元嵌入和位置嵌入相加，向模型中注入额外的位置信息
+        x = self.drop_emb(x) # 词元和位置嵌入后使用dropout掩码
         x = self.trf_blocks(x)
         x = self.final_norm(x)
         logits = self.out_head(x)
